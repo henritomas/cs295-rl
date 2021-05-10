@@ -7,7 +7,6 @@ import gym
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-%matplotlib inline
 import pandas as pd
 
 import itertools
