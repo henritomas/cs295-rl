@@ -55,7 +55,7 @@ class CliffWalkingEnv(gym.Env):
         n_states = np.prod(self.grid_size)
 
         s = self.get_state()
-        s_onehot = [0.0] * np.prod(self.grid_size)
+        s_onehot = np.zeros(np.prod(self.grid_size))
         s_onehot[s] = 1.0
 
         return s_onehot
