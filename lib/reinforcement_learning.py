@@ -16,6 +16,11 @@ from tqdm import tqdm
 
 matplotlib.style.use('ggplot')
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
 class EgreedyPolicy():
     '''
     Creates an egreedy policy object, list of probabilities for each action
@@ -336,3 +341,218 @@ def sarsa_frozenlake(env, n_episodes, e_initial, e_final, e_decay, alpha=0.1, ga
         stats.episode_rewards[episode] = total_r
             
     return Q, stats
+
+class OneHotEncoding(gym.ObservationWrapper):
+
+    def __init__(self, env):
+        super(OneHotEncoding, self).__init__(env)
+        n_states = env.observation_space.n
+        self.observation_space = gym.spaces.Box(0.0, 1.0, (n_states, ), dtype=np.float32)
+
+    def observation(self, state):
+        reward = np.copy(self.observation_space.low)
+        reward[state] = 1.0
+        return reward
+
+class PolicyNN(nn.Module):
+
+    def __init__(self, n_states, n_actions):
+        super(PolicyNN, self).__init__()
+
+        self.hidden = nn.Linear(n_states, 128)
+        self.output = nn.Linear(128, n_actions)
+
+    def forward(self, x):
+
+        x = F.relu(self.hidden(x))
+        x = self.output(x)
+
+        return x
+    
+    def predict(self, x):
+
+        x = self.forward(x)
+        
+        return F.softmax(x, dim=0)
+
+def policy(net, state):
+
+    with torch.no_grad():
+
+        inputs = torch.tensor(state).cuda()
+        preds = net.predict(inputs)
+        preds = preds.cpu().numpy()
+
+    # preds is the NN's predicted probability of taking an action.
+    # The policy is to follow this distribution choosing actions.
+    action = np.random.choice(len(preds), p=preds)
+
+    return action
+
+def cem_frozenlake(env, lr=1e-3, elite_ratio=0.3, n_episodes=100, n_epochs=1):
+
+    net = PolicyNN(n_states=4*4, n_actions=4)
+    net.cuda()
+
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(params=net.parameters(), lr=lr)
+
+    batch_size = int(elite_ratio * n_episodes)
+
+    stats = plotting.EpisodeStats(
+    episode_lengths=np.zeros(n_epochs*n_episodes),
+    episode_rewards=np.zeros(n_epochs*n_episodes))
+
+    for epoch in tqdm(range(n_epochs)):
+
+        # Dataset
+        all_states = []
+        all_actions = []
+        mean_ep_reward = []
+        all_rewards = []
+
+        for episode in range(n_episodes):
+
+            # Store states and actions of this episode in:
+            ep_states = []
+            ep_actions = []
+            ep_reward = 0
+            total_r = 0.
+            
+            # Reset, get initial state
+            s = env.reset()
+
+            for t in itertools.count():
+
+                a = policy(net, s)
+                s_prime, r, done, _ = env.step(a)
+
+                # Frozenlake: Save state-action-rewards for CEM
+                ep_states.append(s)
+                ep_actions.append(a)
+                if done and r > 0:
+                    ep_reward = 0.9**(len(ep_states))
+                    # 6 actions to perfectly solve FrozenLake
+
+                total_r += r
+                if done:
+                    break
+
+                s = s_prime
+
+            # Update stats
+            stats.episode_lengths[epoch*n_episodes + episode] = t
+            stats.episode_rewards[epoch*n_episodes + episode] = total_r
+            
+            # Append this episode to dataset
+            all_states.extend(ep_states)
+            all_actions.extend(ep_actions)
+            all_rewards.extend([ep_reward] * (len(ep_states))) # each state is assigned the episode's reward.
+            mean_ep_reward.append(ep_reward)
+
+        #print('Epoch {} mean reward: {:.5f}'.format(
+        #    epoch, np.mean(np.array(mean_ep_reward))))
+
+        all_states, all_actions, all_rewards = map(
+            np.array, [all_states, all_actions, all_rewards])
+
+        best_episodes = np.argsort(-all_rewards)[:batch_size]
+
+        x_states = all_states[best_episodes]
+        y_actions = all_actions[best_episodes]
+
+        # Training the neural network
+        x_states, y_actions = map(torch.from_numpy, [x_states, y_actions])
+        x_states, y_actions = map(lambda x: x.cuda(), [x_states, y_actions])
+
+        preds = net(x_states)
+        loss = loss_fn(preds, y_actions)
+        loss.backward()
+        optimizer.step()
+
+    return stats
+
+def cem_cliffwalking(env, lr=1e-3, elite_ratio=0.3, n_episodes=100, n_epochs=1):
+
+    net = PolicyNN(n_states=4*12, n_actions=4)
+    net.cuda()
+
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(params=net.parameters(), lr=lr)
+
+    batch_size = int(elite_ratio * n_episodes)
+
+    stats = plotting.EpisodeStats(
+    episode_lengths=np.zeros(n_epochs*n_episodes),
+    episode_rewards=np.zeros(n_epochs*n_episodes))
+
+    for epoch in tqdm(range(n_epochs)):
+
+        # Dataset
+        all_states = []
+        all_actions = []
+        mean_ep_reward = []
+        all_rewards = []
+
+        for episode in range(n_episodes):
+
+            # Store states and actions of this episode in:
+            ep_states = []
+            ep_actions = []
+            ep_reward = 0
+            total_r = 0.
+            
+            # Reset, get initial state
+            env.reset()
+            s = env.get_state_onehot()
+
+            for t in itertools.count():
+
+                a = policy(net, s)
+                s_prime, r, done, _ = env.step(a)
+                s_prime = env.get_state_onehot()
+
+                # Frozenlake: Save state-action-rewards for CEM
+                ep_states.append(s)
+                ep_actions.append(a)
+                if done and r == -1:
+                    ep_reward = 0.9**(len(ep_states))
+
+                total_r += r
+                if done:
+                    break
+
+                s = s_prime
+
+            # Update stats
+            stats.episode_lengths[epoch*n_episodes + episode] = t
+            stats.episode_rewards[epoch*n_episodes + episode] = total_r
+            
+            # Append this episode to dataset
+            all_states.extend(ep_states)
+            all_actions.extend(ep_actions)
+            all_rewards.extend([ep_reward] * (len(ep_states))) # each state is assigned the episode's reward.
+            mean_ep_reward.append(ep_reward)
+
+        #print('Epoch {} mean reward: {:.5f}'.format(
+        #    epoch, np.mean(np.array(mean_ep_reward))))
+
+        all_states, all_actions, all_rewards = map(
+            np.array, [all_states, all_actions, all_rewards])
+
+        best_episodes = np.argsort(-all_rewards)[:batch_size]
+
+        x_states = all_states[best_episodes]
+        y_actions = all_actions[best_episodes]
+
+        # Training the neural network
+        x_states, y_actions = map(torch.from_numpy, [x_states, y_actions])
+        x_states, y_actions = map(lambda x: x.cuda(), [x_states, y_actions])
+
+        preds = net(x_states)
+        loss = loss_fn(preds, y_actions)
+        loss.backward()
+        optimizer.step()
+
+    return stats
+
