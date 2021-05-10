@@ -1,0 +1,13 @@
+#custom
+*/.ipynb_checkpoints/*
+*/__pycache__/*
+*/temp/*
+*/deprecated/*
+*/logs/*
+
+__pycache__/
+
+
+*.pth
+*.npz
+*.zip
