@@ -101,7 +101,7 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False):
 def plot_episode_stats_multi(stats_list, smoothing_window=10, noshow=False):
     # Plot the episode length over time
     fig1 = plt.figure(figsize=(10,5))
-    for stats in stat_list:
+    for stats in stats_list:
         lengths_smoothed = pd.Series(stats.episode_lengths).rolling(smoothing_window, min_periods=smoothing_window).mean()
         plt.plot(lengths_smoothed)
     plt.legend(['Q-learning', 'SARSA', 'CEM'])
