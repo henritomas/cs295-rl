@@ -98,7 +98,7 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False):
 
     return fig1, fig2, fig3
 
-def plot_episode_stats_multi(stats_list, smoothing_window=10, noshow=False):
+def plot_episode_stats_compare3(stats_list, smoothing_window=10, noshow=False):
     # Plot the episode length over time
     fig1 = plt.figure(figsize=(10,5))
     for stats in stats_list:
@@ -115,8 +115,10 @@ def plot_episode_stats_multi(stats_list, smoothing_window=10, noshow=False):
 
     # Plot the episode reward over time
     fig2 = plt.figure(figsize=(10,5))
-    rewards_smoothed = pd.Series(stats.episode_rewards).rolling(smoothing_window, min_periods=smoothing_window).mean()
-    plt.plot(rewards_smoothed)
+    for stats in stats_list:
+        rewards_smoothed = pd.Series(stats.episode_rewards).rolling(smoothing_window, min_periods=smoothing_window).mean()
+        plt.plot(rewards_smoothed)
+    plt.legend(['Q-learning', 'SARSA', 'CEM'])
     plt.xlabel("Episode")
     plt.ylabel("Episode Reward (Smoothed)")
     plt.title("Episode Reward over Time (Smoothed over window size {})".format(smoothing_window))
@@ -127,7 +129,9 @@ def plot_episode_stats_multi(stats_list, smoothing_window=10, noshow=False):
 
     # Plot time steps and episode number
     fig3 = plt.figure(figsize=(10,5))
-    plt.plot(np.cumsum(stats.episode_lengths), np.arange(len(stats.episode_lengths)))
+    for stats in stats_list:
+        plt.plot(np.cumsum(stats.episode_lengths), np.arange(len(stats.episode_lengths)))
+    plt.legend(['Q-learning', 'SARSA', 'CEM'])
     plt.xlabel("Time Steps")
     plt.ylabel("Episode")
     plt.title("Episode per time step")
