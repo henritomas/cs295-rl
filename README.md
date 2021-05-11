@@ -12,7 +12,7 @@ and their evaluation on FrozenLake-v0 (slippery and non-slippery) and the Cliff 
 
 ### Environments
 1. OpenAI Gym's FrozenLake-v0 environment. Set `is_slippery=False` for deterministic version. 
-2. [Cliff Walking Environment](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20Cliff%20Walking%20Environment.ipynb), as described in Sutton and Barto's book. Linked is a notebook on how the environment was coded.
+2. [**Cliff Walking Environment**](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20Cliff%20Walking%20Environment.ipynb), as described in Sutton and Barto's book. Linked is a notebook on how the environment was coded.
 
 ### Comparison
-[Comparison Notebook](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20Comparison_%20Q-Learning%2C%20SARSA%2C%20CEM.ipynb): comparisons between the performance of the algorithms, as well as variations of their hyperparameters.
+[**Comparison Notebook**](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20Comparison_%20Q-Learning%2C%20SARSA%2C%20CEM.ipynb): comparisons between the performance of the algorithms, as well as variations of their hyperparameters.
