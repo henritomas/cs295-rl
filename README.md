@@ -8,7 +8,7 @@ and their evaluation on FrozenLake-v0 (slippery and non-slippery) and the Cliff 
 ### Algorithms
 1. [**Q-Learning**](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20Q-Learning%20-%20Implementation.ipynb) : documented notebook implementation of q-learning.
 2. [**SARSA**](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20SARSA%20-%20Implementation.ipynb) : documented notebook implementation of SARSA.
-3. [**Cross-Entropy Method**](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20Cross-Entropy%20Method%20-%20Implementation.ipynb) documented notebook implementation of CEM using an MLP. 
+3. [**Cross-Entropy Method**](https://github.com/henritomas/cs295-rl/blob/master/%5BCS295%5D%20Cross-Entropy%20Method%20-%20Implementation.ipynb) : documented notebook implementation of CEM using an MLP. 
 
 ### Environments
 1. OpenAI Gym's FrozenLake-v0 environment. Set `is_slippery=False` for deterministic version. 
